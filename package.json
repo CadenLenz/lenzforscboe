@@ -1,0 +1,7 @@
+{
+  "name": "jonathan-lenz-campaign",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test tests/endorsement.test.js" },
+  "engines": { "node": ">=22" }
+}

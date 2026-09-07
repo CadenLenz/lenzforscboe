@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 Disallow: /api/
-Sitemap: https://campaign.example/sitemap.xml
+Sitemap: https://lenzforscboe.com/sitemap.xml

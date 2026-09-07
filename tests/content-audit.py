@@ -41,7 +41,7 @@ for value in [between('A Different Role Than a Local School Board','A County Boa
               'Beyond its defined statutory '+between('Beyond its defined statutory','Ready to Serve')]:
     assert normalize(value) in sections['board'],'Board source prose mismatch'
 intro=between('Endorsements To include:','Endorsed By')
-assert intro in sections['endorsements'],'Endorsement fragment mismatch'
+assert intro in sections['endorsements'],'Endorsement paragraph mismatch'
 all_text=normalize(' '.join(page.all))
 for value in ['Jonathan Lenz for Sonoma County Board of Education, Trustee Area 2','Experience. Leadership. A commitment to students and schools.',
  'Paid for by Jonathan Lenz, candidate for Sonoma County Board of Education, Trustee Area 2.',
@@ -52,4 +52,10 @@ assert thanks in Path('public/js/endorsements.js').read_text(encoding='utf-8'),'
 assert len(page.ids)==len(set(page.ids)),'Duplicate HTML IDs'
 assert all(link in page.ids for link in page.links),'Broken local anchor'
 assert len(sections)==9,'Expected nine campaign sections'
-print('PASS: all campaign prose, source fragment, thank-you, footer statements, nine sections and local anchors accounted for.')
+assert sections['experience'].count('Special Education Local Plan Area (SELPA) Director') == 1
+assert 'community partners.' in sections['endorsements']
+assert 'community partners to' not in sections['endorsements']
+assert 'awaiting completion' not in all_text.lower()
+assert 'Awaiting image' not in all_text
+assert 'Headshot here' in Path('public/assets/images/headshot-placeholder.svg').read_text(encoding='utf-8')
+print('PASS: all campaign prose, corrected endorsement paragraph, thank-you, footer statements, nine sections and local anchors accounted for.')

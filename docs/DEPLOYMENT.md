@@ -8,11 +8,11 @@ Use this directory as the repository root, not the surrounding Playground direct
 git add public functions tools tests docs README.md package.json wrangler.toml .gitignore .dev.vars.example
 git commit -m "Build Jonathan Lenz campaign website"
 git branch -M main
-git remote add origin https://github.com/YOUR-ACCOUNT/YOUR-REPOSITORY.git
+git remote add origin https://github.com/CadenLenz/lenzforscboe.git
 git push -u origin main
 ```
 
-The initial local branch is `codex/campaign-website`. Renaming it to `main` in the commands above is optional; the Pages production branch must match whichever branch you use.
+The production branch is `main`. Future changes use `git push origin main`.
 
 ## 2. Cloudflare Pages
 
@@ -36,15 +36,15 @@ Do not put Google Sheet credentials in repository variables that are interpolate
 
 In the Pages project, add the actual domain under **Custom domains** and follow Cloudflare’s DNS validation steps. For an apex domain, the domain normally must be a zone in that Cloudflare account. For a subdomain, follow the Pages-provided CNAME instructions. Add the domain through Pages before manually changing records.
 
-Wait for the domain and HTTPS certificate to become active. Choose a single canonical origin, update all `campaign.example` placeholders, and redirect an alternate `www`/apex hostname to that origin using a Cloudflare redirect rule if both are used. Do not configure a campaign domain that the campaign has not supplied.
+Wait for the domain and HTTPS certificate to become active. The canonical origin is `https://lenzforscboe.com`; and redirect an alternate `www`/apex hostname to that origin using a Cloudflare redirect rule if both are used. Do not configure a campaign domain that the campaign has not supplied.
 
-Set `ALLOWED_ORIGINS` to exact origins such as `https://YOUR-CAMPAIGN-DOMAIN`, without a trailing slash. The API additionally requires the incoming Origin to match the request URL’s origin. Add a Pages preview origin only if you intentionally enable submissions there; use separate preview credentials and a test Sheet. Never use a wildcard origin.
+Set `ALLOWED_ORIGINS` to exact origins such as `https://lenzforscboe.com`, without a trailing slash. The API additionally requires the incoming Origin to match the request URL’s origin. Add a Pages preview origin only if you intentionally enable submissions there; use separate preview credentials and a test Sheet. Never use a wildcard origin.
 
 Add the actual hostname to the Turnstile widget’s allowed hostnames. The function checks both Turnstile’s returned hostname and `action: endorsement`.
 
 ## 4. Launch verification
 
-1. Replace campaign placeholders listed in the README.
+1. Review the headshot and sample endorser placeholders listed in the README.
 2. Test all anchor links and the form at the real HTTPS domain.
 3. Submit an authorized test endorsement; verify exactly one intended Pending row and remove it manually afterward.
 4. Confirm the site did not publish the submitted name automatically and the email is absent from public HTML.

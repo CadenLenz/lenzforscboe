@@ -264,31 +264,15 @@ section {
 }
 .portrait {
   margin: 0;
-  background: var(--color-primary);
-  min-height: 380px;
-  aspect-ratio: 4/4.4;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 2rem;
-  color: white;
-  border-bottom: 12px solid var(--color-accent);
+  background: white;
+  aspect-ratio: 10 / 11;
+  border: 1px solid var(--color-border);
+  overflow: hidden;
 }
-.portrait .portrait-name {
-  font-size: clamp(2.2rem, 4vw, 3.7rem);
-  font-weight: 800;
-  line-height: 0.98;
-  letter-spacing: -0.04em;
-  color: var(--color-accent);
-}
-.portrait figcaption {
-  font-size: 0.85rem;
-  border-top: 1px solid #7697b7;
-  padding-top: 1rem;
-}
-.portrait figcaption strong {
-  display: block;
-  color: white;
+.portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .hero-bottom {
   margin-top: 3rem;
@@ -667,16 +651,6 @@ body.menu-open {
   .hero h1 {
     max-width: 8ch;
     font-size: clamp(3.6rem, 15vw, 5.5rem);
-  }
-  .portrait {
-    min-height: 200px;
-    aspect-ratio: auto;
-    padding: 1.5rem;
-    gap: 2rem;
-    max-width: none;
-  }
-  .portrait .portrait-name {
-    font-size: 2rem;
   }
   .hero-bottom {
     margin-top: 2rem;

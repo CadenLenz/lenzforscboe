@@ -1,6 +1,6 @@
 # Jonathan Lenz campaign website
 
-A responsive, section-based campaign website for Sonoma County Board of Education, Trustee Area 2. Campaign copy comes from `Website Content - Google Docs.pdf`; its extracted text is retained in `docs/source-extract.txt`.
+A responsive, section-based campaign website for Sonoma County Board of Education, Trustee Area 2. Campaign copy comes from `Website Content - Google Docs.pdf`; its text, with the explicit launch corrections recorded in CONTENT-AUDIT.md, is retained in `docs/source-extract.txt`.
 
 ## Architecture
 
@@ -71,18 +71,36 @@ Edit the appropriate section directly in `public/index.html`. All prose is prese
 - **Colors and layout:** edit the custom properties at the beginning of `public/css/styles.css`.
 - **Footer:** `#paid-for` is the one visible paid-for statement; `#campaign-disclaimer` is the non-affiliation statement. Both are near the end of `public/index.html`.
 - **Year:** the HTML fallback is 2026; JavaScript uses the visitor’s current year. Update the fallback annually if maintaining a no-JavaScript current year is important.
-- **Domain and SEO:** replace `https://campaign.example/` in HTML metadata, `robots.txt` and `sitemap.xml` with the real canonical domain before launch. No unverified structured data or social image has been added.
+- **Domain and SEO:** the canonical URL, Open Graph URL, sitemap and robots sitemap reference use `https://lenzforscboe.com/`. No unverified structured data or social image has been added.
 
-## Before public launch
+## Updating the website
 
-This is an implemented deployment package, with campaign-supplied items still required:
+1. Edit files locally in this repository.
+2. Preview and test locally (`python -m http.server 4173 --bind 127.0.0.1 --directory public`, `npm test`, and `python tests/content-audit.py`).
+3. Commit:
 
-1. Supply an authorized candidate portrait.
-2. Complete the endorsement paragraph. The campaign confirmed it is currently incomplete; the draft preserves the fragment and marks it as awaiting completion.
-3. Replace or remove the clearly marked sample endorser component.
-4. Set the real domain, public Turnstile site key, Cloudflare secrets and Apps Script properties.
-5. Run a real Turnstile-to-Sheet test and confirm a **Pending** row, private email, and no automatic public display.
+   ```sh
+   git add .
+   git commit -m "Describe change"
+   ```
 
-The online form deliberately remains disabled while its public site key is blank. Missing server configuration fails closed. No live deployment, real secret, domain, or real Sheet is implied by the example configuration.
+4. Push:
 
-See [content integrity](docs/CONTENT-AUDIT.md) and [validation results](docs/TESTING.md).
+   ```sh
+   git push origin main
+   ```
+
+5. Cloudflare Pages automatically deploys the new `main` commit from the connected GitHub repository. There is no frontend build command; Pages serves `public/` and compiles `functions/`.
+6. Check the successful deployment in Cloudflare and verify https://lenzforscboe.com/.
+
+### Replacing the headshot
+
+Save an authorized 10:11 portrait, recommended 800 × 880px, to `public/assets/images/jonathan-headshot.webp`. In the single `.portrait img` in `public/index.html`, change `src` from `/assets/images/headshot-placeholder.svg` to `/assets/images/jonathan-headshot.webp` and `alt` to `Jonathan Lenz`. Keep its width/height and the CSS frame; the surrounding layout remains unchanged. See [asset instructions](docs/ASSETS.md).
+
+## Endorsement activation
+
+The website can be published while its protected form remains disabled. To activate online endorsements, configure the public Turnstile site key, Cloudflare secrets, and private Google Sheet/Apps Script destination following [endorsement setup](docs/ENDORSEMENTS.md). Missing server configuration fails closed. Never fabricate keys or commit them.
+
+The campaign can later replace the labeled sample endorser with approved names and supply the final headshot. The corrected endorsement copy is complete.
+
+See [content integrity](docs/CONTENT-AUDIT.md), [validation](docs/TESTING.md), and [deployment status](docs/LAUNCH.md).

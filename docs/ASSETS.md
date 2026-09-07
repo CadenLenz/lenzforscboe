@@ -1,29 +1,21 @@
-# Campaign assets
+# Campaign assets and headshot
 
-## Supplied branding
+## Replace the headshot
 
-`public/assets/campaign-artwork.webp` is a WebP conversion of the sole raster image embedded on page 7 of the supplied PDF. Original dimensions: 2048 × 1536. The design does not claim that the artwork is a newly authoritative vector logo.
+The one image location is the `.portrait img` in `public/index.html`:
 
-The two dominant campaign colors were measured from the embedded pixels:
+```html
+<img src="/assets/images/headshot-placeholder.svg" width="800" height="880" alt="Headshot here" />
+```
 
-- Blue: RGB 0, 63, 127 → `#003f7f`.
-- Yellow: RGB 255, 222, 89 → `#ffde59`.
+1. Save the authorized portrait as `public/assets/images/jonathan-headshot.webp`, preferably **800 × 880 pixels (10:11)** or a larger image with the same ratio.
+2. Change only `src` to `/assets/images/jonathan-headshot.webp` and `alt` to `Jonathan Lenz`. Keep width="800", height="880" and the `.portrait` figure.
+3. Preview phone and desktop crops. The CSS frame has `aspect-ratio: 10 / 11`; the image fills it with `object-fit: cover`. This preserves the same layout space before and after replacement, without stretching. Adjust `object-position` only if the portrait composition needs it.
 
-The darker blue and neutral surfaces are supporting design colors. Blue/yellow are the source identity. The page uses system sans-serif fonts and no remote font requests.
+The supplied placeholder is a white 800 × 880 SVG with centered “Headshot here” text. Its border is provided by the figure. It scales in the same frame on every viewport and has no broken-image treatment or invented photograph. No second image location needs editing.
 
-The source raster contains tiny template text (“YOUR PARAGRAPH TEXT”) above the blue office band. It remains present in the original supplied graphic; it has not been silently retouched. A final clean campaign artwork export is recommended before launch. The header and portrait placeholder are typographic treatments using the campaign name and sampled colors, not an assertion of an official new logo.
+## Branding
 
-`favicon.svg` is a simple new JL initials treatment in the supplied colors; it is not an extracted official campaign mark.
+`public/assets/campaign-artwork.webp` is a WebP conversion of the raster image on PDF page 7, originally 2048 × 1536. Dominant colors measured from the embedded image are blue `#003f7f` and yellow `#ffde59`. Supporting dark blue and neutral colors are design additions, not new campaign claims. The website uses system fonts.
 
-## Candidate portrait placeholder
-
-No candidate photographs were supplied. The hero intentionally contains a labeled blue placeholder instead of stock photography or an invented likeness.
-
-When an authorized image is available:
-
-1. Save an optimized portrait as `public/assets/jonathan-hero.webp` (roughly 800–1200px wide).
-2. Replace the contents of the `.portrait` figure with an image whose alt text is `Jonathan Lenz` and whose width/height match the actual image. Remove “Candidate photo forthcoming.”
-3. Adjust `.portrait` for the real photo: remove placeholder padding, use a deliberate aspect ratio, and set the image to width/height 100% with `object-fit: cover` and an appropriate `object-position`. Retain a reasonable hero height on phones.
-4. Do not lazy-load the hero portrait. If a second portrait is later added below the fold, use `loading="lazy"`, set dimensions, and test its crop at phone and desktop sizes.
-
-The current contact artwork is lazy-loaded and has explicit width and height. No generated social-preview image is included because one was not requested. Text-only Open Graph and Twitter metadata are present.
+The raster retains tiny source template text (“YOUR PARAGRAPH TEXT”) above the office band. A clean campaign export can replace it later. It has not been silently retouched. `favicon.svg` is a simple JL initials treatment in the source colors, not an extracted official vector logo.

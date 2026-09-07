@@ -1,40 +1,27 @@
-# Source-content integrity audit
+# Content integrity audit
 
-Source: `Website Content - Google Docs.pdf`, seven pages. Its written content is authoritative; PDF layout directions such as “To include,” “Need an endorse me button,” and sample names are planning material, not public campaign claims. The pasted user request determines the actual implementation requirements.
+The supplied campaign-content PDF remains authoritative, with two explicit user corrections applied for launch:
 
-| Source section | Result | Location / treatment |
-| --- | --- | --- |
-| Home | Included | Candidate name, exact office and message; explicit photo placeholder |
-| Meet Jonathan Lenz | Included | All five narrative paragraphs; source-worded pull quote |
-| Experience at Every Level | Included | All seven roles and their complete descriptions; no invented dates or chronology |
-| Why I Am Running | Included | All four paragraphs, with a source-worded pull quote |
-| Role of the County Board of Education | Included | Complete local/county distinction, four authority definitions, and collaboration paragraph |
-| Ready to Serve | Included | Complete paragraph, including 23 years experience |
-| Endorsements | Included with source defect flagged | Complete introduction, unfinished second paragraph preserved with an explicit completion marker, reusable sample component, identification-only disclaimer, CTA and exact thank-you text |
-| Donations | Included | Heading and both supplied sentences/paragraphs; no payment services |
-| Contact | Included | Let’s Connect heading, complete contact wording and campaign email |
-| Paid-for footer | Included | Exact sentence in a single visible `#paid-for` element |
-| Non-affiliation disclaimer | Included | Exact sentence in `#campaign-disclaimer` |
-| Page 7 branding | Included | Supplied raster converted to WebP; dominant source blue/yellow used as design tokens |
+1. The role reads **Special Education Local Plan Area (SELPA) Director**.
+2. The endorsement paragraph ends **community partners.** The trailing word from the PDF was removed; no continuation was added.
 
-## Explicit unresolved source issues
+`source-extract.txt` is the PDF transcription with these two user-authorized corrections applied. All unrelated substantive campaign copy is preserved.
 
-The second endorsement paragraph ends with:
+| Section | Status |
+| --- | --- |
+| Home | Included; exact office and message, white Headshot here placeholder |
+| Meet Jonathan Lenz | All five paragraphs included |
+| Experience at Every Level | All seven roles and descriptions included; corrected SELPA expansion |
+| Why I Am Running | All four paragraphs included |
+| Role of the County Board of Education | Comparison, four authorities and collaboration paragraph included |
+| Ready to Serve | Complete source paragraph included |
+| Endorsements | Introduction and corrected paragraph included; identification disclaimer, form and exact thank-you preserved |
+| Donations | Both source paragraphs included; no payment integration |
+| Contact | Source wording and email included |
+| Paid-for footer | Exact statement included in one visible location |
+| Non-affiliation disclaimer | Exact statement included |
+| Page 7 branding | Supplied raster and sampled blue/yellow preserved |
 
-> Together, we believe in thoughtful, student-centered leadership, strong public schools, and a County Board of Education that works collaboratively with the County Superintendent of Schools, local school districts, families, and community partners to
+No dates, endorsers, affiliations, positions or candidate photographs were invented. The sample endorser remains explicitly labeled. The hero uses an 800 × 880 white SVG placeholder with centered “Headshot here” text, rendered in the same 10:11 frame that the final portrait will use. Domain metadata uses https://lenzforscboe.com/.
 
-The user confirmed on September 6, 2026 that it is currently incomplete. Its supplied fragment remains in the draft followed by `[Statement awaiting completion.]`. No continuation was invented. Complete or explicitly authorize removing this fragment before public launch.
-
-No real endorsers, candidate portrait, campaign domain, Turnstile keys or Google Sheet destination were supplied. Those are documented placeholders, not factual campaign claims. Three repeated sample endorsement slots in the PDF are represented by one clearly labeled reusable sample; none represents a real person.
-
-The page 7 raster includes tiny template text, documented in ASSETS.md. The raw artwork is preserved rather than silently retouched.
-
-## Permitted formatting changes
-
-- Removed PDF line wrapping and bullets that were layout instructions; maintained complete substantive paragraphs.
-- Used typographic quotation marks and heading capitalization. The quoted fragment beginning “Always” capitalizes the source’s “always” because it starts a displayed quotation.
-- Used short navigational labels and explanatory headings derived from the corresponding source text; no new positions, statistics, dates, endorsements, affiliations or employment history.
-- Preserved “judgement,” “23 years experience,” and the repeated “decision” phrasing in the supplied thank-you message rather than silently editing them.
-- Added implementation-based privacy language, field consent and availability/error messages as requested. These are operational descriptions, not additional campaign positions.
-
-All substantive PDF campaign prose is accounted for. The unfinished endorsement wording is the only copy that cannot be made publication-complete without additional campaign text.
+Run `python tests/content-audit.py` to compare the full prose, footer and anchor structure. It also checks the exact corrected role and paragraph and the headshot asset.

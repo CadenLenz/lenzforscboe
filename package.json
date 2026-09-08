@@ -3,5 +3,5 @@
   "private": true,
   "type": "module",
   "scripts": { "test": "node --test tests/endorsement.test.js" },
-  "engines": { "node": ">=22" }
+  "engines": { "node": ">=24" }
 }

@@ -97,9 +97,9 @@
               >
             </div>
           </div>
-          <!-- HEADSHOT: replace only the image src and alt; retain dimensions and .portrait. See docs/ASSETS.md. -->
-          <figure class="portrait">
-            <img src="/assets/images/headshot-placeholder.svg" width="800" height="880" alt="Headshot here" />
+          <!-- Replace the span with /assets/images/jonathan-headshot.webp; retain .portrait. See README. -->
+          <figure class="portrait photo-slot">
+            <span>Headshot here</span>
           </figure>
         </div>
         <div class="container hero-bottom">
@@ -213,6 +213,8 @@
             </article>
             <article class="role-card">
               <h3>School Board Member</h3>
+              <!-- Replace span with /assets/images/jonathan-school-board.webp; retain .school-board-photo. -->
+              <figure class="school-board-photo photo-slot"><span>School Board photo here</span></figure>
               <p>
                 Served on a local school board for four years, gaining firsthand
                 educational experience in elected school governance and decision
@@ -358,6 +360,7 @@
               </p>
             </article>
           </div>
+          <h3 class="collaboration-heading">Areas of Support and Collaboration</h3>
           <p class="prose">
             Beyond its defined statutory areas of authority, the County Board
             should work collaboratively with the County Superintendent of
@@ -413,16 +416,8 @@
                 local school districts, families, and community partners.
               </p>
               <h3>Endorsed By</h3>
-              <p class="small">
-                Endorser names will be added after campaign review.
-              </p>
-              <!-- Reusable sample only: copy for approved endorsers, replace both bracketed values, remove placeholder label. Never load submissions here. -->
-              <div class="endorser-list">
-                <article class="endorser">
-                  <span>Placeholder</span><strong>[Name]</strong
-                  ><span>[Title or Affiliation]</span>
-                </article>
-              </div>
+              <p id="endorsement-list-status" class="small" role="status">Endorsements will appear here as they are approved.</p>
+              <div class="endorser-list" id="approved-endorsements"></div>
               <p class="small">
                 Titles and organizational affiliations are provided for
                 identification purposes only.
@@ -457,23 +452,25 @@
                 </div>
                 <div class="field">
                   <label for="affiliation"
-                    >Title / Affiliation <span>(optional)</span></label
+                    >Role / Affiliation <span>(required)</span></label
                   ><input
                     id="affiliation"
                     name="affiliation"
                     autocomplete="organization-title"
                     maxlength="180"
+                    required
                     aria-describedby="affiliation-error"
                   /><span class="field-error" id="affiliation-error"></span>
                 </div>
                 <div class="field">
-                  <label for="email">Email <span>(optional)</span></label
+                  <label for="email">Email <span>(required)</span></label
                   ><input
                     id="email"
                     name="email"
                     type="email"
                     autocomplete="email"
                     maxlength="254"
+                    required
                     aria-describedby="email-help email-error"
                   /><span id="email-help" class="small"
                     >Used for endorsement administration. Not shown
@@ -497,9 +494,7 @@
                     required
                     aria-describedby="consent-error"
                   /><span
-                    >I agree that my submitted name and affiliation may be
-                    considered for public display as a campaign
-                    endorsement.</span
+                    >I authorize the campaign to review my endorsement and, if approved, display my name and role / affiliation publicly. My email address will not be displayed publicly.</span
                   ></label
                 ><span id="consent-error" class="field-error"></span>
                 <div id="turnstile-widget"></div>
@@ -581,14 +576,7 @@
               >lenzforscboe@gmail.com ↗</a
             >
           </div>
-          <img
-            class="campaign-art"
-            src="/assets/campaign-artwork.webp"
-            width="2048"
-            height="1536"
-            loading="lazy"
-            alt="Jonathan Lenz for Sonoma County Board of Education campaign graphic, in blue and yellow."
-          />
+
         </div>
       </section>
     </main>
@@ -614,19 +602,16 @@
         <details id="privacy" class="privacy">
           <summary>Endorsement privacy</summary>
           <p>
-            The endorsement form submits your name, optional title or
-            affiliation, optional email address, and consent. Submissions are
-            stored with a timestamp and moderation status in a private Google
-            Sheet for campaign endorsement administration. The campaign reviews
-            submissions before intentionally adding approved names and
-            affiliations to this website. Email addresses are not shown
-            publicly.
+            The endorsement form collects your name, role / affiliation, email address, and consent.
+            Cloudflare stores submissions in a private campaign database with a timestamp and review status.
+            Resend delivers approval requests to the campaign. Only approved names and roles / affiliations
+            appear publicly. Email addresses remain private and are used only for endorsement administration.
           </p>
           <p>
             Cloudflare Turnstile is used for spam prevention when the form is
             enabled. Verification information is processed by Cloudflare;
             verification tokens and IP addresses are not saved to the campaign’s
-            endorsement sheet. To ask about your submission, email
+            endorsement database. To ask about your submission, email
             <a href="mailto:lenzforscboe@gmail.com">lenzforscboe@gmail.com</a>.
           </p>
         </details>

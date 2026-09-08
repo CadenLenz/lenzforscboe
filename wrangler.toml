@@ -1,3 +1,16 @@
-name = "jonathan-lenz-campaign"
+name = "lenzforscboe"
 compatibility_date = "2026-09-06"
 pages_build_output_dir = "./public"
+
+[vars]
+PUBLIC_SITE_URL = "https://lenzforscboe.com"
+ALLOWED_ORIGINS = "https://lenzforscboe.com,https://lenzforscboe.pages.dev"
+ENDORSEMENT_FROM_EMAIL = "Jonathan Lenz Campaign <endorsements@lenzforscboe.com>"
+ENDORSEMENT_REVIEW_EMAIL = "lenzforscboe@gmail.com"
+TURNSTILE_SITE_KEY = "0x4AAAAAAEr37GAy86Pe9Jai"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "lenzforscboe-endorsements"
+database_id = "7ccba6ee-0941-4c84-923a-3bea5cc5a0cb"
+migrations_dir = "migrations"

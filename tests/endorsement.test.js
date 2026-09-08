@@ -1,270 +1,83 @@
-import test from "node:test";
-import assert from "node:assert/strict";
-import vm from "node:vm";
-import { readFileSync } from "node:fs";
-import { createHmac } from "node:crypto";
-import { onRequest } from "../functions/api/endorsement.js";
-
-const env = {
-  ALLOWED_ORIGINS: "https://campaign.example",
-  TURNSTILE_SECRET_KEY: "test-secret",
-  SHEETS_SIGNING_SECRET: "a-test-only-secret-of-at-least-32-characters",
-  GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/test/exec",
-};
-const valid = {
-  name: " Jane Doe ",
-  affiliation: " Educator ",
-  email: " jane@example.com ",
-  consent: true,
-  website: "",
-  token: "test-token",
-};
-function request(body = valid, options = {}) {
-  const {
-    method = "POST",
-    origin = "https://campaign.example",
-    type = "application/json",
-  } = options;
-  return new Request("https://campaign.example/api/endorsement", {
-    method,
-    headers: { Origin: origin, "Content-Type": type },
-    ...(method === "GET"
-      ? {}
-      : { body: typeof body === "string" ? body : JSON.stringify(body) }),
-  });
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { DatabaseSync } from 'node:sqlite';
+import { readFileSync } from 'node:fs';
+import { onRequest as submit } from '../functions/api/endorsement.js';
+import { onRequest as list } from '../functions/api/endorsements.js';
+import { onRequest as review } from '../functions/api/endorsement-review.js';
+import { onRequest as config } from '../functions/api/endorsement-config.js';
+import { hash, reviewToken } from '../lib/endorsements.js';
+const origin = 'https://lenzforscboe.com';
+function setup() {
+ const sqlite = new DatabaseSync(':memory:'); sqlite.exec(readFileSync(new URL('../migrations/0001_endorsements.sql',import.meta.url),'utf8'));
+ const DB = { prepare(sql) { const stmt = sqlite.prepare(sql); let args=[]; return { bind(...values) {args=values;return this;}, async run(){const r=stmt.run(...args);return {meta:{changes:Number(r.changes)}};},async first(){return stmt.get(...args)||null;},async all(){return {results:stmt.all(...args)};} }; } };
+ const env = { DB, PUBLIC_SITE_URL:origin, TURNSTILE_SITE_KEY:'test-site', TURNSTILE_SECRET_KEY:'test-secret', EMAIL_API_KEY:'test-only', ENDORSEMENT_FROM_EMAIL:'Campaign <endorsements@lenzforscboe.com>', ENDORSEMENT_REVIEW_EMAIL:'lenzforscboe@gmail.com', REVIEW_TOKEN_SECRET:'unit-test-only-'.repeat(4) };
+ const data = {name:'Test Endorser',role:'Test Role',email:'controlled@example.com',consent:true,website:'',token:'verified-test-token',requestId:crypto.randomUUID()};
+ const emails=[];let mailOK=true;let challenge={success:true,action:'endorsement',hostname:'lenzforscboe.com'};
+ const fetcher=async (url,options)=>{
+  if(url.includes('siteverify'))return Response.json(challenge);
+  assert.equal(url,'https://api.resend.com/emails'); emails.push({body:JSON.parse(options.body),key:options.headers['Idempotency-Key']});
+  return Response.json(mailOK?{id:'test-mail-id'}:{error:'private-error'},{status:mailOK?200:500});
+ };
+ const request = (values=data, extra={}) => new Request(origin+'/api/endorsement',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json',...extra},body:JSON.stringify(values)});
+ const publicList = () => list({request:new Request(origin+'/api/endorsements'),env});
+ const row=()=>sqlite.prepare('SELECT * FROM endorsements LIMIT 1').get();
+ const act=async(action='approve',method='POST',token)=>{
+  token??=await reviewToken(env,row());
+  const values=new URLSearchParams({token,action});
+  return review({request:new Request(origin+'/api/endorsement-review'+(method==='GET'?'?'+values:''),{method,headers:{Origin:origin,'Content-Type':'application/x-www-form-urlencoded'},...(method==='POST'?{body:values}: {})}),env});
+ };
+ return {env,data,request,sqlite,emails,fetcher,publicList,row,act,setMail(value){mailOK=value;},setChallenge(value){challenge=value;}};
 }
-test("POST only and same-origin requests only", async () => {
-  assert.equal(
-    (await onRequest({ request: request(null, { method: "GET" }), env }))
-      .status,
-    405,
-  );
-  assert.equal(
-    (
-      await onRequest({
-        request: request(valid, { origin: "https://evil.example" }),
-        env,
-      })
-    ).status,
-    403,
-  );
-  assert.equal(
-    (await onRequest({ request: request(valid, { origin: "" }), env })).status,
-    403,
-  );
-  assert.equal(
-    (await onRequest({ request: request(valid, { type: "text/plain" }), env }))
-      .status,
-    415,
-  );
+test('pending storage, private public API, safe email and approval/replay',async t=>{
+ const c=setup();t.after(()=>c.sqlite.close());t.mock.method(globalThis,'fetch',c.fetcher);
+ c.data.name='<script>alert(1)</script>';
+ assert.equal((await submit({request:c.request(),env:c.env})).status,200);
+ assert.equal(c.row().status,'pending');assert.equal(c.row().approval_token_hash.length,64);
+ const token=await reviewToken(c.env,c.row());assert.notEqual(c.row().approval_token_hash,token);assert.equal(c.row().approval_token_hash,await hash(token));
+ assert.deepEqual(await (await c.publicList()).json(),{endorsements:[]});
+ assert.equal(c.emails[0].body.to[0],'lenzforscboe@gmail.com');assert.match(c.emails[0].body.html,/&lt;script&gt;/);assert.ok(!c.emails[0].body.html.includes('<script>'));
+ const get=await c.act('approve','GET');assert.equal(get.status,200);assert.equal(c.row().status,'pending');assert.ok(!(await get.text()).includes('<script>'));
+ assert.equal((await c.act('approve','POST',token)).status,200);
+ assert.deepEqual(await (await c.publicList()).json(),{endorsements:[{name:c.data.name,role:'Test Role'}]});
+ assert.equal(c.row().approval_token_hash,null);assert.equal((await c.act('decline','POST',token)).status,400);assert.equal(c.row().status,'approved');
 });
-test("invalid input is rejected before any external request", async () => {
-  const bodies = [
-    "{",
-    [],
-    null,
-    { ...valid, name: "" },
-    { ...valid, name: "a".repeat(121) },
-    { ...valid, name: 123 },
-    { ...valid, email: "bad" },
-    { ...valid, email: "x".repeat(255) },
-    { ...valid, consent: false },
-    { ...valid, consent: "true" },
-    { ...valid, website: "bot" },
-    { ...valid, token: "" },
-    { ...valid, token: "a".repeat(2049) },
-    { ...valid, extra: "bad" },
-    { ...valid, name: "name\nmalformed" },
-    { ...valid, affiliation: "x".repeat(181) },
-    "x".repeat(9000),
-  ];
-  for (const body of bodies)
-    assert.equal(
-      (await onRequest({ request: request(body), env })).status,
-      400,
-    );
+test('decline, expiration, malformed links and methods',async t=>{
+ const c=setup();t.after(()=>c.sqlite.close());t.mock.method(globalThis,'fetch',c.fetcher);
+ await submit({request:c.request(),env:c.env});assert.equal((await c.act('decline')).status,200);assert.equal(c.row().status,'declined');assert.deepEqual(await(await c.publicList()).json(),{endorsements:[]});
+ assert.equal((await c.act('approve','POST','x'.repeat(64))).status,400);
+ c.data.requestId=crypto.randomUUID();await submit({request:c.request(),env:c.env});
+ const pending=c.sqlite.prepare("SELECT * FROM endorsements WHERE status='pending'").get();const expired=await reviewToken(c.env,pending);
+ c.sqlite.prepare('UPDATE endorsements SET token_expires_at=0 WHERE id=?').run(pending.id);assert.equal((await c.act('approve','POST',expired)).status,400);
+ assert.equal((await submit({request:new Request(origin),env:c.env})).status,405);
+ assert.equal((await list({request:new Request(origin,{method:'POST'}),env:c.env})).status,405);
 });
-test("successful verification signs normalized Pending submission without token or IP", async (t) => {
-  let calls = 0;
-  t.mock.method(globalThis, "fetch", async (url, options) => {
-    calls++;
-    if (calls === 1) {
-      assert.equal(
-        url,
-        "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-      );
-      assert.deepEqual(JSON.parse(options.body), {
-        secret: "test-secret",
-        response: "test-token",
-      });
-      return Response.json({
-        success: true,
-        hostname: "campaign.example",
-        action: "endorsement",
-      });
-    }
-    const envelope = JSON.parse(options.body);
-    assert.equal(
-      envelope.signature,
-      createHmac("sha256", env.SHEETS_SIGNING_SECRET)
-        .update(envelope.payload)
-        .digest("hex"),
-    );
-    const data = JSON.parse(envelope.payload);
-    assert.equal(data.name, "Jane Doe");
-    assert.equal(data.affiliation, "Educator");
-    assert.equal(data.email, "jane@example.com");
-    assert.equal(data.status, "Pending");
-    assert.equal(data.consent, true);
-    assert.equal(data.token, undefined);
-    assert.equal(data.ip, undefined);
-    return Response.json({ ok: true });
-  });
-  const result = await onRequest({ request: request(), env });
-  assert.equal(result.status, 200);
-  assert.deepEqual(await result.json(), { ok: true });
-  assert.equal(calls, 2);
-  assert.equal(result.headers.get("Cache-Control"), "no-store");
+test('all required validation and origin/content boundaries',async t=>{
+ const c=setup();t.after(()=>c.sqlite.close());t.mock.method(globalThis,'fetch',c.fetcher);
+ for(const delta of [{name:' '},{role:' '},{email:''},{email:'invalid'},{consent:false},{website:'spam'},{name:'a'.repeat(121)},{role:'a'.repeat(181)},{name:'a\nb'},{requestId:'1'},{extra:'x'}]) assert.equal((await submit({request:c.request({...c.data,...delta}),env:c.env})).status,400);
+ assert.equal((await submit({request:c.request(c.data,{Origin:'https://evil.example'}),env:c.env})).status,403);
+ assert.equal((await submit({request:c.request(c.data,{'Content-Type':'text/plain'}),env:c.env})).status,415);
+ assert.equal((await submit({request:c.request({...c.data,token:'a'.repeat(9000)}),env:c.env})).status,400);
+ assert.equal(c.sqlite.prepare('SELECT count(*) AS n FROM endorsements').get().n,0);
 });
-test("invalid, expired, replayed, wrong-host and wrong-action tokens never reach Sheets", async (t) => {
-  for (const verification of [
-    { success: false, "error-codes": ["timeout-or-duplicate"] },
-    { success: true, hostname: "evil.example", action: "endorsement" },
-    { success: true, hostname: "campaign.example", action: "other" },
-  ]) {
-    let calls = 0;
-    const mock = t.mock.method(globalThis, "fetch", async () => {
-      calls++;
-      return Response.json(verification);
-    });
-    assert.equal((await onRequest({ request: request(), env })).status, 400);
-    assert.equal(calls, 1);
-    mock.mock.restore();
-  }
+test('Turnstile failure and configuration fail closed',async t=>{
+ const c=setup();t.after(()=>c.sqlite.close());t.mock.method(globalThis,'fetch',c.fetcher);
+ for(const challenge of [{success:false},{success:true,action:'wrong',hostname:'lenzforscboe.com'},{success:true,action:'endorsement',hostname:'other.example'}]) {c.setChallenge(challenge);assert.equal((await submit({request:c.request(),env:c.env})).status,400);}
+ const missing={...c.env,EMAIL_API_KEY:''};assert.equal((await submit({request:c.request(),env:missing})).status,503);
+ const publicConfig=await config({request:new Request(origin),env:c.env}).json();assert.deepEqual(publicConfig,{enabled:true,siteKey:'test-site'});
 });
-test("configuration, upstream, network and non-JSON failures fail closed", async (t) => {
-  assert.equal(
-    (
-      await onRequest({
-        request: request(),
-        env: { ...env, TURNSTILE_SECRET_KEY: "" },
-      })
-    ).status,
-    503,
-  );
-  assert.equal(
-    (
-      await onRequest({
-        request: request(),
-        env: { ...env, GOOGLE_SCRIPT_URL: "https://evil.example/exec" },
-      })
-    ).status,
-    503,
-  );
-  for (const failure of ["network", "verification", "sheet", "json"]) {
-    let count = 0;
-    const mock = t.mock.method(globalThis, "fetch", async () => {
-      count++;
-      if (failure === "network") throw new Error("sensitive upstream details");
-      if (failure === "verification") return new Response("", { status: 500 });
-      if (count === 1)
-        return Response.json({
-          success: true,
-          hostname: "campaign.example",
-          action: "endorsement",
-        });
-      return failure === "json"
-        ? new Response("<html>Error</html>")
-        : Response.json({ ok: false });
-    });
-    const result = await onRequest({ request: request(), env });
-    assert.equal(result.status, 503);
-    assert.ok(!(await result.text()).includes("sensitive"));
-    mock.mock.restore();
-  }
+test('lost responses and email failures retry without duplicate rows or new bearer tokens',async t=>{
+ const c=setup();t.after(()=>c.sqlite.close());t.mock.method(globalThis,'fetch',c.fetcher);c.setMail(false);
+ assert.equal((await submit({request:c.request(),env:c.env})).status,503);assert.equal(c.row().status,'pending');assert.equal(c.row().email_sent_at,null);
+ c.setMail(true);assert.equal((await submit({request:c.request(),env:c.env})).status,200);assert.deepEqual(c.emails[0],c.emails[1]);
+ assert.equal((await submit({request:c.request(),env:c.env})).status,200);assert.equal(c.emails.length,2);assert.equal(c.sqlite.prepare('SELECT count(*) AS n FROM endorsements').get().n,1);
+ assert.equal((await submit({request:c.request({...c.data,name:'different'}),env:c.env})).status,409);
 });
-test("Apps Script authenticates, refuses stale payloads, deduplicates and neutralizes formulas", () => {
-  const rows = [];
-  const sheet = {
-    getRange: () => ({
-      createTextFinder: (nonce) => ({
-        matchEntireCell: () => ({
-          findNext: () => rows.find((row) => row[6] === nonce),
-        }),
-      }),
-    }),
-    appendRow: (row) => rows.push(row),
-  };
-  const context = {
-    ContentService: {
-      MimeType: { JSON: "json" },
-      createTextOutput: (content) => ({
-        setMimeType: () => JSON.parse(content),
-      }),
-    },
-    PropertiesService: {
-      getScriptProperties: () => ({
-        getProperty: (key) =>
-          key === "SHEETS_SIGNING_SECRET" ? env.SHEETS_SIGNING_SECRET : "sheet",
-      }),
-    },
-    Utilities: {
-      Charset: { UTF_8: "utf8" },
-      computeHmacSha256Signature: (payload, secret) => [
-        ...createHmac("sha256", secret).update(payload).digest(),
-      ],
-    },
-    LockService: {
-      getScriptLock: () => ({
-        tryLock: () => true,
-        hasLock: () => true,
-        releaseLock: () => {},
-      }),
-    },
-    SpreadsheetApp: { openById: () => ({ getSheetByName: () => sheet }) },
-  };
-  vm.createContext(context);
-  vm.runInContext(
-    readFileSync(
-      new URL("../tools/google-apps-script.gs", import.meta.url),
-      "utf8",
-    ),
-    context,
-  );
-  const payload = {
-    timestamp: new Date().toISOString(),
-    nonce: crypto.randomUUID(),
-    name: '=IMPORTXML("evil")',
-    affiliation: "+formula",
-    email: "test@example.com",
-    consent: true,
-    status: "Pending",
-  };
-  const send = (value, signature) => {
-    const body = JSON.stringify(value);
-    return context.doPost({
-      postData: {
-        contents: JSON.stringify({
-          payload: body,
-          signature:
-            signature ??
-            createHmac("sha256", env.SHEETS_SIGNING_SECRET)
-              .update(body)
-              .digest("hex"),
-        }),
-      },
-    });
-  };
-  assert.equal(send(payload, "0".repeat(64)).ok, false);
-  assert.equal(
-    send({ ...payload, timestamp: "2020-01-01T00:00:00Z" }).ok,
-    false,
-  );
-  assert.equal(send(payload).ok, true);
-  assert.equal(rows.length, 1);
-  assert.equal(rows[0][1], '\'=IMPORTXML("evil")');
-  assert.equal(rows[0][2], "'+formula");
-  assert.equal(rows[0][5], "Pending");
-  assert.equal(send(payload).ok, true);
-  assert.equal(rows.length, 1);
+test('private no-referrer confirmation requires same-origin Fetch Metadata and a valid token',async t=>{
+ const c=setup();t.after(()=>c.sqlite.close());t.mock.method(globalThis,'fetch',c.fetcher);
+ await submit({request:c.request(),env:c.env});const token=await reviewToken(c.env,c.row());
+ const request=site=>new Request(origin+'/api/endorsement-review',{method:'POST',headers:{Origin:'null','Sec-Fetch-Site':site,'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({token,action:'approve'})});
+ assert.equal((await review({request:request('cross-site'),env:c.env})).status,400);
+ assert.equal((await review({request:request('same-origin'),env:c.env})).status,200);
+ assert.equal(c.row().status,'approved');
 });

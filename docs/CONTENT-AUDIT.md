@@ -20,8 +20,8 @@ The supplied campaign-content PDF remains authoritative, with two explicit user 
 | Contact | Source wording and email included |
 | Paid-for footer | Exact statement included in one visible location |
 | Non-affiliation disclaimer | Exact statement included |
-| Page 7 branding | Supplied raster and sampled blue/yellow preserved |
+| Page 7 branding | Sampled campaign blue/yellow preserved; no extra photo slot |
 
-No dates, endorsers, affiliations, positions or candidate photographs were invented. The sample endorser remains explicitly labeled. The hero uses an 800 × 880 white SVG placeholder with centered “Headshot here” text, rendered in the same 10:11 frame that the final portrait will use. Domain metadata uses https://lenzforscboe.com/.
+No dates, endorsers, affiliations, positions or candidate photographs were invented. Both photo locations use white markup placeholders; no sample endorser appears publicly. The additional user-requested heading, Areas of Support and Collaboration, separates the preserved collaboration paragraph. Domain metadata uses https://lenzforscboe.com/.
 
-Run `python tests/content-audit.py` to compare the full prose, footer and anchor structure. It also checks the exact corrected role and paragraph and the headshot asset.
+Run `python tests/content-audit.py` to compare all campaign prose, footer statements, nine sections, corrected role and paragraph, photo placeholders, and local anchors. The source thank-you is preserved in the form script. Form, privacy and workflow language was explicitly extended by the latest user request.

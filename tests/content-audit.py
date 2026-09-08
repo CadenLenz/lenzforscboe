@@ -24,7 +24,7 @@ normalize=lambda text:' '.join(text.split())
 source=normalize(re.sub(r'PAGE \d+','',Path('docs/source-extract.txt').read_text(encoding='utf-8')))
 between=lambda a,b:source.split(a,1)[1].split(b,1)[0].strip()
 page=Content();page.feed(Path('public/index.html').read_text(encoding='utf-8-sig'))
-sections={k:normalize(' '.join(v)) for k,v in page.sections.items()}
+sections={k:normalize(' '.join(v)).replace(' School Board photo here','') for k,v in page.sections.items()}
 expected={
  'meet':'For more than two decades, '+between('● For more than two decades,','Experience at Every Level'),
  'experience':between('Experience at Every Level To Include :','Why I am Running'),
@@ -57,5 +57,7 @@ assert 'community partners.' in sections['endorsements']
 assert 'community partners to' not in sections['endorsements']
 assert 'awaiting completion' not in all_text.lower()
 assert 'Awaiting image' not in all_text
-assert 'Headshot here' in Path('public/assets/images/headshot-placeholder.svg').read_text(encoding='utf-8')
+assert 'Headshot here' in all_text
+assert 'School Board photo here' in all_text
+assert 'Areas of Support and Collaboration' in sections['board']
 print('PASS: all campaign prose, corrected endorsement paragraph, thank-you, footer statements, nine sections and local anchors accounted for.')

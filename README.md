@@ -1,106 +1,146 @@
 # Jonathan Lenz campaign website
 
-A responsive, section-based campaign website for Sonoma County Board of Education, Trustee Area 2. Campaign copy comes from `Website Content - Google Docs.pdf`; its text, with the explicit launch corrections recorded in CONTENT-AUDIT.md, is retained in `docs/source-extract.txt`.
+Single-page campaign site for Sonoma County Board of Education, Trustee Area 2. [Production](https://lenzforscboe.com/) · [GitHub](https://github.com/CadenLenz/lenzforscboe)
 
 ## Architecture
 
-Static HTML5, CSS, and vanilla JavaScript. No framework, CSS library, database, production Node process, or static-site build step. Cloudflare Pages serves `public/` directly. One Pages Function handles endorsement submissions. A signed server-to-server request writes to a private Google Sheet through Apps Script. Every submission starts as **Pending**; the website never reads the moderation queue.
+Static HTML, CSS, and vanilla JavaScript; no framework, frontend build, runtime npm dependencies, or production Node server. Cloudflare Pages serves `public/` and compiles `functions/`. D1 holds private endorsement state. Resend sends review emails. Turnstile protects submissions. The nine campaign sections remain in one scrolling page, with a sticky navigation, active-section indication, mobile menu, reduced-motion support, and back-to-top link.
 
-`public/` is deliberately separate from server code, documentation and secrets, so a static deployment cannot serve those files. `package.json` only enables ECMAScript modules and the built-in Node test runner; there are no npm dependencies.
+Campaign prose is sourced from the supplied PDF, with explicit user corrections in `docs/CONTENT-AUDIT.md`. Edit content in `public/index.html`; colors, spacing and image frames live in `public/css/styles.css`.
 
 ```text
-public/
-  index.html                 All campaign content and footer statements
-  404.html                   Accessible missing-page response
-  css/styles.css             Responsive design tokens and layouts
-  js/enhance.js              Pre-paint progressive-enhancement flag
-  js/main.js                 Navigation, scroll position, back to top
-  js/endorsements.js         Form, public Turnstile site key, response states
-  assets/                    Original campaign artwork and favicon
-  _headers, _routes.json     Cloudflare security and function routing
-  robots.txt, sitemap.xml    Search-engine configuration
-functions/api/endorsement.js Secure POST endpoint
-tools/google-apps-script.gs  Authenticated moderation-queue receiver
-tests/endorsement.test.js    API and Apps Script security tests
-docs/                      Deployment, maintenance, content and test reports
-wrangler.toml              Pages configuration; publish directory is public/
-.dev.vars.example          Local secret/configuration example
+public/                         Only publicly served files
+  index.html, css/, js/          Page, design, navigation and form
+  assets/images/                Future authorized campaign photos
+  _headers, _routes.json         Security headers and /api/* routing
+functions/api/
+  endorsement.js                Validated POST submission
+  endorsement-config.js         Public site key and enabled flag only
+  endorsement-review.js         GET confirmation / POST decision
+  endorsements.js               GET approved name and role only
+lib/endorsements.js              Shared validation, token and email code
+migrations/0001_endorsements.sql D1 schema and public-query index
+tests/                          Node security tests and source-content audit
+wrangler.toml                   Pages settings, public variables, D1 binding
+.dev.vars.example               Local configuration template, no real secrets
 ```
 
-## Local preview
+## Local development
 
-From the repository root, use any static web server, for example:
+Use Node **24+** (the test suite uses built-in `node:sqlite`) and Python 3 for the content audit. No `npm install` is required for application code.
+
+```sh
+npm test
+python tests/content-audit.py
+```
+
+For a static visual preview:
 
 ```sh
 python -m http.server 4173 --bind 127.0.0.1 --directory public
 ```
 
-Open `http://127.0.0.1:4173/`. This previews reading, responsive navigation and disabled-form behavior. It does not execute Pages Functions. Do not preview by opening the HTML with `file://`; asset paths are relative to the web origin.
-
-For the real Pages runtime, install Node 22+ and run:
+Open `http://127.0.0.1:4173/`. A static server does not execute APIs, so the form and endorsement-list service show unavailable states. For the full Cloudflare runtime, copy `.dev.vars.example` to the ignored `.dev.vars`, configure local test credentials, then:
 
 ```sh
-npx wrangler pages dev public
+npx wrangler d1 migrations apply lenzforscboe-endorsements --local
+npx wrangler pages dev public --port 8788
 ```
 
-Create `.dev.vars` from `.dev.vars.example` before testing the configured API. Use a separate test Sheet and Turnstile configuration; do not populate the real moderation queue during automated tests.
+Use a local D1 database and a controlled mailbox when testing. `--local` never targets the production database. Cloudflare publishes [Turnstile test keys](https://developers.cloudflare.com/turnstile/troubleshooting/testing/) for development; never deploy them to production. The automated Node tests mock Turnstile and Resend and exercise real SQL in an in-memory SQLite database. They send no email and create no production data.
 
-Run dependency-free security tests with `npm test` or `node --test tests/endorsement.test.js`.
+## Endorsement workflow
 
-## Deployment and configuration
+1. A visitor provides required name, role / affiliation, email and consent. The browser validates fields, obtains Turnstile verification, and sends JSON to `/api/endorsement`.
+2. The Function validates origin, method, content type, bounded body and strings, email, consent, honeypot, and Turnstile success/hostname/action. Parameterized SQL inserts a **pending** D1 row.
+3. Resend sends the submitted name, role and private email to **lenzforscboe@gmail.com**, with Approve and Decline links.
+4. A link opens a clean confirmation page. The candidate presses **Confirm approve** or **Confirm decline**; no account login is required. GET never mutates data, preventing email-link scanners from making decisions.
+5. POST atomically updates the pending row and removes its token hash. Approved names and roles appear automatically through `/api/endorsements`; declined and pending records stay private. The page refreshes this list on load, tab focus, and every 60 seconds while visible.
 
-Follow [Cloudflare deployment](docs/DEPLOYMENT.md) for GitHub, Pages and custom domain setup, and [endorsement setup](docs/ENDORSEMENTS.md) for Turnstile and Google Sheets.
+Only name and role are returned publicly. The public API never selects emails, timestamps, IDs, tokens or moderation status. DOM rendering uses `textContent`; review HTML and email markup escape all submitted values. Private declined records are retained in D1 for administration. The campaign may remove them using an authenticated D1 query when no longer needed.
 
-Cloudflare server configuration:
+Review tokens are 256-bit keyed HMAC values, unique to random submission IDs and creation times. D1 stores only SHA-256 hashes. Links expire after seven days; a successful decision consumes the token and prevents later changes through that link. The server secret allows an identical email to be regenerated for a delivery retry without storing the bearer token. Client request UUIDs and payload fingerprints prevent duplicate rows after lost responses. Resend idempotency keys deduplicate matching delivery attempts within its 24-hour window. A failed delivery leaves the row pending, preserves the visitor's entries, and reports a generic retry message.
 
-| Name | Purpose | Secret? |
+## D1 setup and Pages binding
+
+Production database: **lenzforscboe-endorsements**. Database ID: `7ccba6ee-0941-4c84-923a-3bea5cc5a0cb`. Pages binding: **DB**. These identifiers are public configuration, not credentials.
+
+Initial provisioning (already done for this account; do not create a duplicate):
+
+```sh
+npx wrangler d1 create lenzforscboe-endorsements
+npx wrangler d1 migrations apply lenzforscboe-endorsements --remote
+```
+
+`wrangler.toml` declares the binding and migrations directory. The same DB binding is configured on the production Pages project. Apply future migrations explicitly before deploying dependent code; Git builds do not automatically migrate D1. Never commit database files, exports or production records.
+
+## Email provider and Turnstile setup
+
+Resend is the transactional provider. Verify `lenzforscboe.com` in its Domains screen using the supplied DKIM record and sending-subdomain SPF/MX records. Those MX records are for `send.lenzforscboe.com`; do not replace unrelated or root receiving-email records. The sending address is `Jonathan Lenz Campaign <endorsements@lenzforscboe.com>`. The campaign's Gmail address receives moderation requests; this setup does not create an inbox at the sending address.
+
+Create a Resend **Sending access** API key and save it as encrypted `EMAIL_API_KEY` in Cloudflare Pages → lenzforscboe → Settings → Production → Variables and secrets. Do not put it in frontend JavaScript or Git. Check Resend's delivery events after a controlled submission; acceptance by the API alone does not establish delivery to Gmail.
+
+The managed Turnstile widget permits `lenzforscboe.com` and `lenzforscboe.pages.dev`. Its public site key lives in `wrangler.toml` and is served through `/api/endorsement-config`; its secret stays encrypted in Cloudflare. Both client and server use the action `endorsement`, and the server checks the requesting hostname.
+
+## Environment variables
+
+| Name | Purpose | Storage |
 | --- | --- | --- |
-| `ALLOWED_ORIGINS` | Comma-separated exact permitted site origins, including scheme, without trailing slash | No |
-| `TURNSTILE_SECRET_KEY` | Server-side Cloudflare verification key | Yes |
-| `GOOGLE_SCRIPT_URL` | Deployed Apps Script `/exec` URL; server-only destination | Keep server-side |
-| `SHEETS_SIGNING_SECRET` | Shared random signing key, at least 32 characters | Yes |
+| `DB` | D1 source of truth | Pages D1 binding |
+| `PUBLIC_SITE_URL` | Canonical origin for review links | Public config; `https://lenzforscboe.com` |
+| `ALLOWED_ORIGINS` | Exact comma-separated permitted origins, without trailing slash | Public config |
+| `TURNSTILE_SITE_KEY` | Browser verification widget | Public config |
+| `TURNSTILE_SECRET_KEY` | Server-side verification | Encrypted secret |
+| `EMAIL_API_KEY` | Resend sending access | Encrypted secret |
+| `ENDORSEMENT_FROM_EMAIL` | Verified Resend sender | Public config |
+| `ENDORSEMENT_REVIEW_EMAIL` | `lenzforscboe@gmail.com` | Public config |
+| `REVIEW_TOKEN_SECRET` | At least 32 random characters for review-token generation | Encrypted secret |
 
-Apps Script Properties: `SHEET_ID` and the same `SHEETS_SIGNING_SECRET`. The only client-side key is `TURNSTILE_SITE_KEY` in `public/js/endorsements.js`; it is public by design.
+The production public values and D1 binding are maintained in `wrangler.toml`, which is the Pages configuration source of truth. Secrets are configured separately in Cloudflare. The browser only receives the public Turnstile key and enabled flag, never any server secret. Missing required configuration disables the form and fails closed on submission. Secret changes take effect on the next deployment. Preview deployments do not receive production email credentials.
 
-## Update campaign content
+## Adding the two campaign photos
 
-Edit the appropriate section directly in `public/index.html`. All prose is present in HTML, including when JavaScript is unavailable. Preserve stable section IDs and heading associations. No content regeneration or build is required. Keep the content audit current after approved wording changes.
+Exactly two white **markup placeholders** are rendered, with no fake images or broken image requests. The existing hero composition uses **10:11**, retained to avoid changing its layout; the board photo uses **3:2**.
 
-- **Endorsements:** copy the sample `.endorser` article, replace the bracketed fields with an intentionally approved name and affiliation, and remove the sample’s `Placeholder` label. Escape HTML special characters. Do not copy emails, tokens, or the entire Sheet. See [moderation instructions](docs/ENDORSEMENTS.md).
-- **Photos / artwork:** see [assets](docs/ASSETS.md). The portrait is explicitly a placeholder; no candidate photograph has been fabricated.
-- **Colors and layout:** edit the custom properties at the beginning of `public/css/styles.css`.
-- **Footer:** `#paid-for` is the one visible paid-for statement; `#campaign-disclaimer` is the non-affiliation statement. Both are near the end of `public/index.html`.
-- **Year:** the HTML fallback is 2026; JavaScript uses the visitor’s current year. Update the fallback annually if maintaining a no-JavaScript current year is important.
-- **Domain and SEO:** the canonical URL, Open Graph URL, sitemap and robots sitemap reference use `https://lenzforscboe.com/`. No unverified structured data or social image has been added.
+| Photo | File | Recommended dimensions | Location / future alt text |
+| --- | --- | --- | --- |
+| Headshot | `public/assets/images/jonathan-headshot.webp` | 800 × 880 or 1600 × 1760 | Home hero; `Jonathan Lenz` |
+| School board | `public/assets/images/jonathan-school-board.webp` | 1200 × 800 | Experience, inside School Board Member; `Jonathan Lenz serving on a local school board` |
 
-## Updating the website
+After adding the real authorized image, replace only the placeholder span inside its existing figure:
 
-1. Edit files locally in this repository.
-2. Preview and test locally (`python -m http.server 4173 --bind 127.0.0.1 --directory public`, `npm test`, and `python tests/content-audit.py`).
-3. Commit:
+```html
+<figure class="portrait photo-slot">
+  <img src="/assets/images/jonathan-headshot.webp" width="800" height="880" alt="Jonathan Lenz" fetchpriority="high" />
+</figure>
+<figure class="school-board-photo photo-slot">
+  <img src="/assets/images/jonathan-school-board.webp" width="1200" height="800" alt="Jonathan Lenz serving on a local school board" loading="lazy" />
+</figure>
+```
 
-   ```sh
-   git add .
-   git commit -m "Describe change"
-   ```
+Keep the figure classes and aspect ratios. The CSS fills the same reserved footprint with `object-fit: cover`; adjust `object-position` only after inspecting the actual photograph. Verify mobile and desktop cropping and revise alt text to match what the supplied image actually shows. Do not claim a plaque or specific position unless visible. No redesign is needed.
 
-4. Push:
+## Review and debug endorsements
 
-   ```sh
-   git push origin main
-   ```
+Use email links for ordinary moderation. If a request is missing, check Resend delivery/bounce events and the authenticated D1 console. Example private status query:
 
-5. Cloudflare Pages automatically deploys the new `main` commit from the connected GitHub repository. There is no frontend build command; Pages serves `public/` and compiles `functions/`.
-6. Check the successful deployment in Cloudflare and verify https://lenzforscboe.com/.
+```sql
+SELECT id, status, created_at, reviewed_at, email_sent_at
+FROM endorsements ORDER BY created_at DESC LIMIT 20;
+```
 
-### Replacing the headshot
+Do not paste private rows or review links into public issues. A null `email_sent_at` indicates delivery was not confirmed by Resend's API; visitor retries reuse the request ID when entries are unchanged. For an expired link, review the private submission in D1 and use an authenticated, parameterized maintenance query to make the intended decision, clearing `approval_token_hash`; there is no public administrator endpoint. To unpublish an approved record, change only its identified row to `declined` through the private console. Avoid broad UPDATE/DELETE statements.
 
-Save an authorized 10:11 portrait, recommended 800 × 880px, to `public/assets/images/jonathan-headshot.webp`. In the single `.portrait img` in `public/index.html`, change `src` from `/assets/images/headshot-placeholder.svg` to `/assets/images/jonathan-headshot.webp` and `alt` to `Jonathan Lenz`. Keep its width/height and the CSS frame; the surrounding layout remains unchanged. See [asset instructions](docs/ASSETS.md).
+Cloudflare Functions failures use generic client messages and do not log request bodies or tokens. Inspect bindings and encrypted-variable names before investigating provider errors. Resend may accept an email that later bounces; check the provider's event status. If the form is unavailable, the campaign email remains visible.
 
-## Endorsement activation
+## Deployment workflow
 
-The website can be published while its protected form remains disabled. To activate online endorsements, configure the public Turnstile site key, Cloudflare secrets, and private Google Sheet/Apps Script destination following [endorsement setup](docs/ENDORSEMENTS.md). Missing server configuration fails closed. Never fabricate keys or commit them.
+The public repository is **CadenLenz/lenzforscboe**, branch **main**. The existing Cloudflare Pages project **lenzforscboe** is Git-connected with automatic production deployments enabled. Build command: empty. Output directory: **public**. Functions are compiled by Pages. No manual-upload hosting is used.
 
-The campaign can later replace the labeled sample endorser with approved names and supply the final headshot. The corrected endorsement copy is complete.
+1. Edit, run `npm test` and `python tests/content-audit.py`, and inspect the local browser.
+2. Inspect `git status`, `git diff`, and staged files. Exclude `.dev.vars`, `.env`, credentials, databases and test output.
+3. `git add` the intended source files, then `git commit -m "Describe the change"`.
+4. `git push origin main` triggers Cloudflare's Git build.
+5. Verify the deployment commit/status in Cloudflare, then open https://lenzforscboe.com/ and test its APIs. Preserve the www → root 301 redirect, path and query string.
 
-See [content integrity](docs/CONTENT-AUDIT.md), [validation](docs/TESTING.md), and [deployment status](docs/LAUNCH.md).
+See [test results](docs/TESTING.md), [launch status](docs/LAUNCH.md) and [content audit](docs/CONTENT-AUDIT.md). Do not infer a successful email workflow from a successful static build alone.

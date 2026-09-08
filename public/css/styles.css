@@ -726,3 +726,39 @@ body.menu-open {
 #privacy {
   scroll-margin-top: calc(var(--header-height) + 20px);
 }
+/* A consistent chapter boundary: blue rule, generous space, short yellow accent. */
+:root { --section-spacing: clamp(4.5rem, 8vw, 8rem); }
+.section { border-top: 1px solid #003f7f30; }
+.section-index { color: var(--color-primary); font-weight: 700; }
+.section-index::before { content: ''; display: block; width: 3rem; height: 3px; background: var(--color-accent); margin-bottom: 1.25rem; }
+.hero { border-bottom: 3px solid var(--color-accent); }
+#meet { background: #fff; }
+#experience { background: #edf3f8; }
+#board { background: #fff; }
+#ready { background: #edf3f8; }
+#endorsements { background: #f9fafb; }
+#contact { background: #edf3f8; }
+.photo-slot { display: grid; place-items: center; background: #fff; border: 1px solid #bdcad6; color: var(--color-muted); overflow: hidden; }
+.photo-slot span { padding: 1rem; text-align: center; font-size: 1rem; }
+.photo-slot img { width: 100%; height: 100%; object-fit: cover; }
+.school-board-photo { aspect-ratio: 3 / 2; margin: 0 0 1.5rem; }
+.collaboration-heading { border-top: 3px solid var(--color-accent); padding-top: 2rem; margin-top: 2rem; font-size: clamp(1.5rem,2.5vw,2rem); }
+#endorsements, #endorsements button, #endorsements input, #endorsements label, #endorsements p, #endorsements span, #endorsements strong, #endorsements h2, #endorsements h3 { font-family: Arial, Helvetica, sans-serif; }
+#endorsements input, #endorsements button { font-size: 1rem; }
+.endorser-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.endorser { border: 1px solid var(--color-border); border-left: 3px solid var(--color-accent); background: white; padding: 1rem 1.15rem; }
+.endorser span { font-size: 0.95rem; }
+.contact-grid { grid-template-columns: 1fr; }
+.contact-grid .prose { max-width: 65ch; }
+.review-page { max-width: 760px; }
+.review-page h1 { font-size: clamp(2.5rem,6vw,4rem); }
+.review-page form { margin-block: 2rem; }
+@media(max-width:700px) {
+ .portrait { width: min(100%,320px); justify-self: center; }
+ .endorser-list { grid-template-columns: 1fr; }
+ .school-board-photo { max-width: 480px; }
+ .back-top { position: static; display: block; margin: 0; text-align: center; border-radius: 0; box-shadow: none; }
+}
+@media (max-width: 1599px) {
+ .back-top { position: static; display: block; margin: 0; text-align: center; border-radius: 0; box-shadow: none; }
+}

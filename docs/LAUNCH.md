@@ -6,4 +6,6 @@ D1 database lenzforscboe-endorsements (7ccba6ee-0941-4c84-923a-3bea5cc5a0cb) has
 
 Resend shows lenzforscboe.com verified. Only the three provider-requested DKIM and sending-subdomain SPF/MX records were added; root and www CNAME records are preserved. The existing www 301 rule remains configured to preserve path and query string.
 
-The current source refinements have passed the local checks in TESTING.md. Production release verification is still pending at the time of this pre-release note; a successful build alone does not establish submission, Gmail delivery or moderation.
+Production release 65e417e deployed successfully. The public domain, assets and enabled endorsement API were verified. HTTPS www redirects to the root domain with path and query preserved. Real browser submissions, D1 pending storage, Resend-confirmed delivery to the campaign Gmail address, approval publication and decline were verified. Both controlled test endorsements are declined and absent from the public API. The campaign's separate pending submission remains available for review.
+
+The final photo update includes both supplied photographs, optimized without embedded camera metadata. All seven requested viewport widths and keyboard section navigation passed. GitHub main triggers the final photo deployment; verify its exact commit in the Cloudflare deployment status before handoff. No campaign configuration action remains.

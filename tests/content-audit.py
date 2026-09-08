@@ -57,7 +57,9 @@ assert 'community partners.' in sections['endorsements']
 assert 'community partners to' not in sections['endorsements']
 assert 'awaiting completion' not in all_text.lower()
 assert 'Awaiting image' not in all_text
-assert 'Headshot here' in all_text
-assert 'School Board photo here' in all_text
+assert 'Headshot here' not in all_text
+assert 'jonathan-headshot.webp' in Path('public/index.html').read_text(encoding='utf-8')
+assert 'School Board photo here' not in all_text
+assert 'jonathan-school-board.webp' in Path('public/index.html').read_text(encoding='utf-8')
 assert 'Areas of Support and Collaboration' in sections['board']
 print('PASS: all campaign prose, corrected endorsement paragraph, thank-you, footer statements, nine sections and local anchors accounted for.')

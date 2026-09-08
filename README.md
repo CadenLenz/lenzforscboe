@@ -11,7 +11,7 @@ Campaign prose is sourced from the supplied PDF, with explicit user corrections 
 ```text
 public/                         Only publicly served files
   index.html, css/, js/          Page, design, navigation and form
-  assets/images/                Future authorized campaign photos
+  assets/images/                Authorized campaign photos
   _headers, _routes.json         Security headers and /api/* routing
 functions/api/
   endorsement.js                Validated POST submission
@@ -98,27 +98,9 @@ The managed Turnstile widget permits `lenzforscboe.com` and `lenzforscboe.pages.
 
 The production public values and D1 binding are maintained in `wrangler.toml`, which is the Pages configuration source of truth. Secrets are configured separately in Cloudflare. The browser only receives the public Turnstile key and enabled flag, never any server secret. Missing required configuration disables the form and fails closed on submission. Secret changes take effect on the next deployment. Preview deployments do not receive production email credentials.
 
-## Adding the two campaign photos
+## Campaign photos
 
-Exactly two white **markup placeholders** are rendered, with no fake images or broken image requests. The existing hero composition uses **10:11**, retained to avoid changing its layout; the board photo uses **3:2**.
-
-| Photo | File | Recommended dimensions | Location / future alt text |
-| --- | --- | --- | --- |
-| Headshot | `public/assets/images/jonathan-headshot.webp` | 800 × 880 or 1600 × 1760 | Home hero; `Jonathan Lenz` |
-| School board | `public/assets/images/jonathan-school-board.webp` | 1200 × 800 | Experience, inside School Board Member; `Jonathan Lenz serving on a local school board` |
-
-After adding the real authorized image, replace only the placeholder span inside its existing figure:
-
-```html
-<figure class="portrait photo-slot">
-  <img src="/assets/images/jonathan-headshot.webp" width="800" height="880" alt="Jonathan Lenz" fetchpriority="high" />
-</figure>
-<figure class="school-board-photo photo-slot">
-  <img src="/assets/images/jonathan-school-board.webp" width="1200" height="800" alt="Jonathan Lenz serving on a local school board" loading="lazy" />
-</figure>
-```
-
-Keep the figure classes and aspect ratios. The CSS fills the same reserved footprint with `object-fit: cover`; adjust `object-position` only after inspecting the actual photograph. Verify mobile and desktop cropping and revise alt text to match what the supplied image actually shows. Do not claim a plaque or specific position unless visible. No redesign is needed.
+Two user-supplied photographs are included as optimized WebP assets without embedded camera metadata. The outdoor portrait comes from IMG_1012.HEIC and appears in the hero at a 10:11 display ratio. The school board image comes from Screenshot 2026-09-07 181846.png and retains its full 410:491 frame, including the president nameplate. Both have descriptive alt text and intrinsic dimensions; the hero loads with high priority and the board photo loads lazily.
 
 ## Review and debug endorsements
 

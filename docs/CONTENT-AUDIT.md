@@ -9,7 +9,7 @@ The supplied campaign-content PDF remains authoritative, with two explicit user 
 
 | Section | Status |
 | --- | --- |
-| Home | Included; exact office and message, white Headshot here placeholder |
+| Home | Included; exact office and message, supplied outdoor portrait |
 | Meet Jonathan Lenz | All five paragraphs included |
 | Experience at Every Level | All seven roles and descriptions included; corrected SELPA expansion |
 | Why I Am Running | All four paragraphs included |
@@ -22,6 +22,6 @@ The supplied campaign-content PDF remains authoritative, with two explicit user 
 | Non-affiliation disclaimer | Exact statement included |
 | Page 7 branding | Sampled campaign blue/yellow preserved; no extra photo slot |
 
-No dates, endorsers, affiliations, positions or candidate photographs were invented. Both photo locations use white markup placeholders; no sample endorser appears publicly. The additional user-requested heading, Areas of Support and Collaboration, separates the preserved collaboration paragraph. Domain metadata uses https://lenzforscboe.com/.
+No dates, endorsers, affiliations, positions or candidate photographs were invented. Both photo locations use the supplied authentic photographs; no sample endorser appears publicly. The additional user-requested heading, Areas of Support and Collaboration, separates the preserved collaboration paragraph. Domain metadata uses https://lenzforscboe.com/.
 
-Run `python tests/content-audit.py` to compare all campaign prose, footer statements, nine sections, corrected role and paragraph, photo placeholders, and local anchors. The source thank-you is preserved in the form script. Form, privacy and workflow language was explicitly extended by the latest user request.
+Run `python tests/content-audit.py` to compare all campaign prose, footer statements, nine sections, corrected role and paragraph, two supplied photos, and local anchors. The source thank-you is preserved in the form script. Form, privacy and workflow language was explicitly extended by the latest user request.

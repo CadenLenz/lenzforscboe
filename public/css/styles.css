@@ -740,7 +740,8 @@ body.menu-open {
 #contact { background: #edf3f8; }
 .photo-slot { display: grid; place-items: center; background: #fff; border: 1px solid #bdcad6; color: var(--color-muted); overflow: hidden; }
 .photo-slot img { width: 100%; height: 100%; object-fit: cover; }
-.school-board-photo { aspect-ratio: 410 / 491; width: min(100%, 260px); margin: 0 auto 1.5rem; }
+.school-board-photo { width: min(100%, 260px); margin: 0 auto 1.5rem; }
+.school-board-photo img { display: block; width: 100%; height: auto; object-fit: contain; }
 .collaboration-heading { border-top: 3px solid var(--color-accent); padding-top: 2rem; margin-top: 2rem; font-size: clamp(1.5rem,2.5vw,2rem); }
 #endorsements, #endorsements button, #endorsements input, #endorsements label, #endorsements p, #endorsements span, #endorsements strong, #endorsements h2, #endorsements h3 { font-family: Arial, Helvetica, sans-serif; }
 #endorsements input, #endorsements button { font-size: 1rem; }

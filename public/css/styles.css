@@ -762,3 +762,8 @@ body.menu-open {
 @media (max-width: 1599px) {
  .back-top { position: static; display: block; margin: 0; text-align: center; border-radius: 0; box-shadow: none; }
 }
+
+.social-links { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; margin-top: 1rem; }
+.social-links a { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; font-size: .875rem; font-weight: 600; color: var(--color-primary); text-decoration: none; }
+.social-links a:hover { text-decoration: underline; text-underline-offset: .25em; }
+.social-links svg { flex: none; }
